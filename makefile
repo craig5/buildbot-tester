@@ -24,32 +24,38 @@ GIT_TEST_DATA_DIR = $(GIT_BASE_DIR)/test-data.git
 #
 REQUIREMENTS_FILE = requirements.txt
 
-setup: _setup_virtualenv _setup_git_repos
+venv: _setup_virtualenv _setup_git_repos
 	mkdir -p $(VENV_DIR)/etc/init.d
 	mkdir -p $(VENV_DIR)/etc/default
 	mkdir -p $(VENV_DIR)/master
 	mkdir -p $(VENV_DIR)/slave
 
-config:
-	sed templates/default-master.sh \
+config: _create_master
+	sed \
 		-e 's|{{USER}}|$(USER)|g' \
 		-e 's|{{MASTER_DIR}}|$(MASTER_DIR)|g' \
 		-e 's|{{MASTER_DEFAULT}}|$(MASTER_DEFAULT)|g' \
 		-e 's|{{MASTER_RUNNER}}|$(MASTER_RUNNER)|g' \
+		templates/default-master.sh \
 		> $(VENV_ETC_DIR)/default/buildmaster
-	sed templates/init-master.sh \
+	sed \
 		-e 's|{{USER}}|$(USER)|g' \
 		-e 's|{{MASTER_DIR}}|$(MASTER_DIR)|g' \
 		-e 's|{{MASTER_DEFAULT}}|$(MASTER_DEFAULT)|g' \
 		-e 's|{{MASTER_RUNNER}}|$(MASTER_RUNNER)|g' \
+		templates/init-master.sh \
 		> $(VENV_ETC_DIR)/init.d/buildmaster
-	sed templates/init-slave.sh \
+	sed \
 		-e 's|{{SLAVE_DEFAULT}}|$(SLAVE_DEFAULT)|g' \
 		-e 's|{{SLAVE_RUNNER}}|$(SLAVE_RUNNER)|g' \
+		templates/init-slave.sh \
 		> $(VENV_ETC_DIR)/init.d/buildslave
 	chmod u+x $(VENV_ETC_DIR)/init.d/buildmaster
 	chmod u+x $(VENV_ETC_DIR)/init.d/buildslave
 	cp master.cfg $(MASTER_DIR)
+
+_create_master:
+	$(MASTER_RUNNER) create-master $(MASTER_DIR)
 
 _setup_virtualenv:
 ifeq (, $(wildcard $(VENV_DIR)))
@@ -85,7 +91,8 @@ clean:
 
 help:
 	@echo "Please select from one of the following:"
-	@echo "	setup	Create virtualenv and git repos"
+	@echo "	config	Create config files from templates"
+	@echo "	venv	Create virtualenv and git repos"
 	@echo "	info	Show various settings"
 	@echo "	clean	Remove: $(VENV_DIR)"
 	@echo "	help	This message"
